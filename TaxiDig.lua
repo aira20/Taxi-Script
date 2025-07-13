@@ -207,37 +207,20 @@ local function teleportVehicleTo(position)
     local humanoid = bot.Character and bot.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return warn("❌ No humanoid") end
 
-    -- If currently seated, save the vehicle but DO NOT teleport it yet
-    local currentSeat = humanoid.SeatPart
-    local vehicle = currentSeat and currentSeat:FindFirstAncestorOfClass("Model")
+    local seat = humanoid.SeatPart or trySeat()
+    if not seat then return warn("❌ Not seated") end
 
-    if vehicle and not vehicle.PrimaryPart then
+    local vehicle = seat:FindFirstAncestorOfClass("Model")
+    if not vehicle then return warn("❌ No vehicle model") end
+
+    if not vehicle.PrimaryPart then
         local base = vehicle:FindFirstChild("HumanoidRootPart") or vehicle:FindFirstChildWhichIsA("BasePart")
         if base then vehicle.PrimaryPart = base else return warn("❌ No PrimaryPart") end
     end
 
-    -- Step 1: Temporarily unseat the bot to avoid teleport drop
-    if humanoid.SeatPart then
-        humanoid.Sit = false
-        task.wait(0.5)
-    end
-
-    -- Step 2: Teleport the vehicle
-    if vehicle then
-        vehicle:SetPrimaryPartCFrame(CFrame.new(position))
-        task.wait(0.5)
-    end
-
-    -- Step 3: Try to seat AFTER teleport
-    local seated = trySeat()
-    if seated then
-        reply("📦 Teleported & seated safely.")
-    else
-        reply("⚠️ Teleported but failed to seat.")
-    end
+    task.wait(0.2)
+    vehicle:SetPrimaryPartCFrame(CFrame.new(position))
 end
-
-
 
 -- ✅ Merchant teleport support
 local function teleportToMerchant()
@@ -400,74 +383,4 @@ if generalChannel then
             handleCommand(sender, cmd:lower(), arg)
         end
     end)
-end
-
--- ✅ Simple GUI Feedback Console (Delta-safe)
-local function createConsole()
-    local gui = Instance.new("ScreenGui", game.CoreGui)
-    gui.Name = "TaxiFeedbackConsole"
-
-    local toggleBtn = Instance.new("TextButton", gui)
-    toggleBtn.Size = UDim2.new(0, 120, 0, 40)
-    toggleBtn.Position = UDim2.new(0, 10, 0, 10)
-    toggleBtn.Text = "📋 Console"
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    toggleBtn.TextColor3 = Color3.new(1,1,1)
-    toggleBtn.BorderSizePixel = 0
-
-    local frame = Instance.new("ScrollingFrame", gui)
-    frame.Size = UDim2.new(0.4, 0, 0.5, 0)
-    frame.Position = UDim2.new(0, 10, 0, 60)
-    frame.Visible = false
-    frame.CanvasSize = UDim2.new(0, 0, 10, 0)
-    frame.BackgroundTransparency = 0.3
-    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    frame.ScrollBarThickness = 8
-
-    local layout = Instance.new("UIListLayout", frame)
-    layout.Padding = UDim.new(0, 4)
-
-    toggleBtn.MouseButton1Click:Connect(function()
-        frame.Visible = not frame.Visible
-    end)
-
-    local function logToGui(msg)
-        local lbl = Instance.new("TextLabel", frame)
-        lbl.Text = msg
-        lbl.Size = UDim2.new(1, -10, 0, 20)
-        lbl.TextColor3 = Color3.new(1, 1, 1)
-        lbl.BackgroundTransparency = 1
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-    end
-
-    return logToGui
-end
-
--- ✅ Auto-seat monitor loop (re-seat if dropped)
-task.spawn(function()
-    while true do
-        task.wait(1)
-        local char = bot.Character
-        if not char then continue end
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not humanoid then continue end
-        if not humanoid.SeatPart then
-            local success = trySeat()
-            if success then
-                reply("🪑 Re-seated after drop.")
-            end
-        end
-    end
-end)
-
-
--- ✅ Replace reply() function to use GUI
-local log = createConsole()
-local lastReplyText, lastReplyTime = "", 0
-function reply(text)
-    local now = tick()
-    if text == lastReplyText and now - lastReplyTime < 2 then return end
-    lastReplyText = text
-    lastReplyTime = now
-    log("🟦 " .. text)
 end
