@@ -207,26 +207,36 @@ local function teleportVehicleTo(position)
     local humanoid = bot.Character and bot.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return warn("❌ No humanoid") end
 
-    local seat = humanoid.SeatPart or trySeat()
-    if not seat then return warn("❌ Not seated") end
+    -- If currently seated, save the vehicle but DO NOT teleport it yet
+    local currentSeat = humanoid.SeatPart
+    local vehicle = currentSeat and currentSeat:FindFirstAncestorOfClass("Model")
 
-    local vehicle = seat:FindFirstAncestorOfClass("Model")
-    if not vehicle then return warn("❌ No vehicle model") end
-
-    if not vehicle.PrimaryPart then
+    if vehicle and not vehicle.PrimaryPart then
         local base = vehicle:FindFirstChild("HumanoidRootPart") or vehicle:FindFirstChildWhichIsA("BasePart")
         if base then vehicle.PrimaryPart = base else return warn("❌ No PrimaryPart") end
     end
 
-    task.wait(0.2)
-    vehicle:SetPrimaryPartCFrame(CFrame.new(position))
-    task.wait(0.3)
+    -- Step 1: Temporarily unseat the bot to avoid teleport drop
+    if humanoid.SeatPart then
+        humanoid.Sit = false
+        task.wait(0.5)
+    end
 
-    -- ✅ Re-seat if bot gets kicked
-    if not humanoid.SeatPart then
-        trySeat()
+    -- Step 2: Teleport the vehicle
+    if vehicle then
+        vehicle:SetPrimaryPartCFrame(CFrame.new(position))
+        task.wait(0.5)
+    end
+
+    -- Step 3: Try to seat AFTER teleport
+    local seated = trySeat()
+    if seated then
+        reply("📦 Teleported & seated safely.")
+    else
+        reply("⚠️ Teleported but failed to seat.")
     end
 end
+
 
 
 -- ✅ Merchant teleport support
