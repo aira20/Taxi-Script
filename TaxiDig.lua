@@ -178,6 +178,7 @@ local function reply(text)
 end
 
 -- ✅ Auto sit
+-- ✅ Auto sit with retry and lock
 local function trySeat()
     local root = bot.Character and bot.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -197,10 +198,33 @@ local function trySeat()
 
     if closest then
         bot.Character:PivotTo(CFrame.new(closest.Position + Vector3.new(0, 2, 0)))
-        task.wait(0.25)
+        task.wait(0.5)
+
+        -- Retry seat check
+        local humanoid = bot.Character:FindFirstChildWhichIsA("Humanoid")
+        if humanoid and not humanoid.SeatPart then
+            task.wait(0.2)
+            if closest.Occupant == nil then
+                bot.Character:PivotTo(CFrame.new(closest.Position + Vector3.new(0, 2, 0)))
+            end
+        end
+
+        -- Watch for being ejected
+        task.spawn(function()
+            while true do
+                task.wait(1.5)
+                local human = bot.Character and bot.Character:FindFirstChildWhichIsA("Humanoid")
+                if not human or not human.SeatPart then
+                    trySeat() -- Re-seat
+                    break
+                end
+            end
+        end)
+
         return closest
     end
 end
+
 
 -- ✅ Teleport vehicle
 local function teleportVehicleTo(position)
