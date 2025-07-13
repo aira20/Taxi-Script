@@ -5,7 +5,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ✅ Anti-AFK toggle
-local antiAFKEnabled = true
+local antiAFKEnabled = false
 
 local bot = Players.LocalPlayer
 repeat task.wait() until bot.Character and bot.Character:FindFirstChild("HumanoidRootPart")
@@ -105,19 +105,21 @@ local function isOnCooldown(player)
 end
 
 -- ✅ Anti-AFK setup (DELTA compatible)
+-- ✅ Safe Anti-AFK (No movement, safe in vehicles)
 if antiAFKEnabled then
     task.spawn(function()
-        while task.wait(30) do
+        while task.wait(60) do
             if antiAFKEnabled then
-                local vchar = bot.Character
-                if vchar and vchar:FindFirstChild("HumanoidRootPart") then
-                    vchar:MoveTo(vchar.HumanoidRootPart.Position + Vector3.new(0,0,0.1))
-                    print("👣 Anti-AFK triggered (Delta-safe).")
-                end
+                local virtualUser = game:GetService("VirtualUser")
+                virtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                task.wait(1)
+                virtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                print("🛡️ Anti-AFK triggered (no movement, vehicle-safe)")
             end
         end
     end)
 end
+
 
 -- ✅ Permission functions
 local function hasPermission(userId, cmd)
@@ -166,16 +168,53 @@ local function listPermissions()
     return result
 end
 
--- ✅ Reply system (DELTA-SAFE)
+-- ✅ Reply system (GUI-aware)
 local lastReplyText, lastReplyTime = "", 0
+local guiTextRef = nil
 local function reply(text)
     local now = tick()
     if text == lastReplyText and now - lastReplyTime < 2 then return end
     lastReplyText = text
     lastReplyTime = now
 
-    print("BOT: " .. text) -- ✅ Console print as reply alternative
+    print("BOT: " .. text)
+    if guiTextRef then
+        guiTextRef.Text = text
+    end
+    logMessage(text) -- ✅ Add this line to log replies
 end
+
+
+-- ✅ Permission text builder
+local lastListPermTime = 0
+local function listPermissions()
+    local now = tick()
+    if now - lastListPermTime < 1 then return end
+    lastListPermTime = now
+
+    local result = "📜 Permission List:\n"
+    result = result .. "🌍 Global Access: " .. (Permissions.allAllowed and "✅ Enabled" or "❌ Disabled") .. "\n"
+
+    for cmd, userList in pairs(Permissions) do
+        if cmd ~= "allAllowed" and cmd ~= "allUsers" then
+            result = result .. "🔹 " .. cmd .. ": "
+            local names = {}
+            for user, _ in pairs(userList) do
+                table.insert(names, user)
+            end
+            result = result .. (#names > 0 and table.concat(names, ", ") or "(none)") .. "\n"
+        end
+    end
+
+    -- Show GUI
+    guiTextRef = createPermissionGUI()
+    if guiTextRef then
+        guiTextRef.Text = result
+    end
+
+    return result
+end
+
 
 -- ✅ Auto sit
 -- ✅ Auto sit with retry and lock
@@ -408,3 +447,195 @@ if generalChannel then
         end
     end)
 end
+
+-- ✅ GUI Setup with Buttons
+local function createPermissionGUI()
+    local existing = bot.PlayerGui:FindFirstChild("PermLogUI")
+    if existing then existing:Destroy() end
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "PermLogUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.Parent = bot:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame")
+    frame.Name = "MainFrame"
+    frame.Size = UDim2.new(0, 400, 0, 320)
+    frame.Position = UDim2.new(0.5, -200, 0.4, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = screenGui
+
+    local title = Instance.new("TextLabel")
+    title.Text = "📜 Permission Log & Controls"
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.SourceSansSemibold
+    title.TextSize = 20
+    title.Parent = frame
+
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Position = UDim2.new(0, 0, 0, 30)
+    scroll.Size = UDim2.new(1, 0, 1, -90)
+    scroll.BackgroundTransparency = 1
+    scroll.BorderSizePixel = 0
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 500)
+    scroll.ScrollBarThickness = 6
+    scroll.Parent = frame
+
+    local logText = Instance.new("TextLabel")
+    logText.Name = "LogText"
+    logText.Size = UDim2.new(1, -10, 0, 500)
+    logText.Position = UDim2.new(0, 5, 0, 0)
+    logText.BackgroundTransparency = 1
+    logText.TextColor3 = Color3.fromRGB(230, 230, 230)
+    logText.Font = Enum.Font.Code
+    logText.TextSize = 16
+    logText.TextXAlignment = Enum.TextXAlignment.Left
+    logText.TextYAlignment = Enum.TextYAlignment.Top
+    logText.TextWrapped = true
+    logText.Text = "[ Waiting for permission data... ]"
+    logText.Parent = scroll
+
+    -- ✅ Buttons
+    local function createButton(name, text, posX, callback)
+        local btn = Instance.new("TextButton")
+        btn.Name = name
+        btn.Size = UDim2.new(0.3, 0, 0, 30)
+        btn.Position = UDim2.new(posX, 0, 1, -35)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        btn.BorderSizePixel = 0
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.SourceSans
+        btn.TextSize = 16
+        btn.Text = text
+        btn.Parent = frame
+        btn.MouseButton1Click:Connect(callback)
+    end
+
+    createButton("AllowAllBtn", "✅ Allow All", 0.05, function()
+        Permissions.allAllowed = true
+        Permissions.allUsers = {}
+        for _, plr in ipairs(Players:GetPlayers()) do
+            table.insert(Permissions.allUsers, plr.Name:lower())
+        end
+        logText.Text = listPermissions()
+    end)
+
+    createButton("RevokeAllBtn", "🚫 Revoke All", 0.35, function()
+        Permissions.allAllowed = false
+        Permissions.allUsers = {}
+        for perm, userList in pairs(Permissions) do
+            if perm ~= "allAllowed" and perm ~= "allUsers" then
+                for user in pairs(userList) do
+                    userList[user] = nil
+                end
+            end
+        end
+        logText.Text = listPermissions()
+    end)
+
+    createButton("AFKBtn", "🕒 Toggle AFK", 0.65, function()
+        antiAFKEnabled = not antiAFKEnabled
+        logText.Text = listPermissions() .. "\n\nAFK is now: " .. (antiAFKEnabled and "✅ ON" or "❌ OFF")
+    end)
+
+    return logText
+end
+
+local function createMainGUI()
+    local existing = bot.PlayerGui:FindFirstChild("BotFixedGUI")
+    if existing then existing:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "BotFixedGUI"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.Parent = bot:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame")
+    frame.Name = "MainFrame"
+    frame.Size = UDim2.new(0, 340, 0, 260)
+    frame.Position = UDim2.new(0.5, -170, 0.5, -130)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = gui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    title.Text = "🚖 BOT CONTROL PANEL"
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 18
+    title.Parent = frame
+
+    local logText = Instance.new("TextLabel")
+    logText.Name = "LogText"
+    logText.Size = UDim2.new(1, -10, 1, -90)
+    logText.Position = UDim2.new(0, 5, 0, 35)
+    logText.BackgroundTransparency = 1
+    logText.TextColor3 = Color3.new(1, 1, 1)
+    logText.Font = Enum.Font.Code
+    logText.TextSize = 16
+    logText.TextXAlignment = Enum.TextXAlignment.Left
+    logText.TextYAlignment = Enum.TextYAlignment.Top
+    logText.TextWrapped = true
+    logText.Text = "✅ GUI loaded.\n📋 AFK: " .. (antiAFKEnabled and "ON" or "OFF")
+    logText.Parent = frame
+
+    local function createButton(text, posX, callback, color)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 100, 0, 30)
+        btn.Position = UDim2.new(0, posX, 1, -35)
+        btn.BackgroundColor3 = color
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 14
+        btn.Text = text
+        btn.Parent = frame
+        btn.MouseButton1Click:Connect(callback)
+        return btn
+    end
+
+    -- 🟢 AFK Button
+    local afkBtn = createButton(antiAFKEnabled and "🟢 AFK ON" or "🔴 AFK OFF", 10, function()
+        antiAFKEnabled = not antiAFKEnabled
+        afkBtn.BackgroundColor3 = antiAFKEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+        afkBtn.Text = antiAFKEnabled and "🟢 AFK ON" or "🔴 AFK OFF"
+        logText.Text = "AFK is now: " .. (antiAFKEnabled and "✅ ENABLED" or "❌ DISABLED")
+    end, antiAFKEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0))
+
+    -- ✅ Allow All Button
+    createButton("✅ Allow All", 120, function()
+        Permissions.allAllowed = true
+        Permissions.allUsers = {}
+        for _, plr in ipairs(Players:GetPlayers()) do
+            table.insert(Permissions.allUsers, plr.Name:lower())
+        end
+        logText.Text = "✅ All players now allowed.\nUse !listperm to confirm."
+    end, Color3.fromRGB(30, 100, 200))
+
+    -- 🚫 Revoke All Button
+    createButton("🚫 Revoke All", 230, function()
+        Permissions.allAllowed = false
+        Permissions.allUsers = {}
+        for perm, userList in pairs(Permissions) do
+            if perm ~= "allAllowed" and perm ~= "allUsers" then
+                for user in pairs(userList) do
+                    userList[user] = nil
+                end
+            end
+        end
+        logText.Text = "🚫 All permissions revoked."
+    end, Color3.fromRGB(120, 0, 0))
+
+    return logText
+end
+
