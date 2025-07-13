@@ -2,7 +2,6 @@
 local Players = game:GetService("Players")
 local TextChatService = game:GetService("TextChatService")
 local RunService = game:GetService("RunService")
-local ChatService = game:GetService("Chat")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ✅ Anti-AFK toggle
@@ -21,8 +20,7 @@ local botOwners = {
     ["Taxi_Dig"] = true,
     ["coldfrost000"] = true,
     ["panjisquidoo"] = true,    
-	["GojekTuan"] = true,
-
+    ["GojekTuan"] = true,
 }
 
 -- ✅ Permissions
@@ -91,8 +89,8 @@ local locations = {
     golden = Vector3.new(-7012, 108, -1952),
     copper = Vector3.new(-5848, 80, -2411),
     grave = Vector3.new(3714, 228, -601),
-	polar = Vector3.new(5130, 1112, -2043),
-	glacial = Vector3.new(5114, 1124, -2691),
+    polar = Vector3.new(5130, 1112, -2043),
+    glacial = Vector3.new(5114, 1124, -2691),
 }
 
 -- ✅ Cooldown handler
@@ -106,16 +104,20 @@ local function isOnCooldown(player)
     return false
 end
 
--- ✅ Anti-AFK setup
-local VirtualUser = game:GetService("VirtualUser")
-
-bot.Idled:Connect(function()
-    if not antiAFKEnabled then return end
-    VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-    print("👣 Anti-AFK triggered to prevent disconnection.")
-end)
+-- ✅ Anti-AFK setup (DELTA compatible)
+if antiAFKEnabled then
+    task.spawn(function()
+        while task.wait(30) do
+            if antiAFKEnabled then
+                local vchar = bot.Character
+                if vchar and vchar:FindFirstChild("HumanoidRootPart") then
+                    vchar:MoveTo(vchar.HumanoidRootPart.Position + Vector3.new(0,0,0.1))
+                    print("👣 Anti-AFK triggered (Delta-safe).")
+                end
+            end
+        end
+    end)
+end
 
 -- ✅ Permission functions
 local function hasPermission(userId, cmd)
@@ -164,7 +166,7 @@ local function listPermissions()
     return result
 end
 
--- ✅ Reply system
+-- ✅ Reply system (DELTA-SAFE)
 local lastReplyText, lastReplyTime = "", 0
 local function reply(text)
     local now = tick()
@@ -172,13 +174,11 @@ local function reply(text)
     lastReplyText = text
     lastReplyTime = now
 
-    local head = bot.Character and bot.Character:FindFirstChild("Head")
-    if head then
-        ChatService:Chat(head, text, Enum.ChatColor.Blue)
-    end
+    print("BOT: " .. text) -- ✅ Console print as reply alternative
 end
 
 -- ✅ Auto sit
+-- ✅ Auto sit with retry and lock
 local function trySeat()
     local root = bot.Character and bot.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -198,10 +198,33 @@ local function trySeat()
 
     if closest then
         bot.Character:PivotTo(CFrame.new(closest.Position + Vector3.new(0, 2, 0)))
-        task.wait(0.25)
+        task.wait(0.5)
+
+        -- Retry seat check
+        local humanoid = bot.Character:FindFirstChildWhichIsA("Humanoid")
+        if humanoid and not humanoid.SeatPart then
+            task.wait(0.2)
+            if closest.Occupant == nil then
+                bot.Character:PivotTo(CFrame.new(closest.Position + Vector3.new(0, 2, 0)))
+            end
+        end
+
+        -- Watch for being ejected
+        task.spawn(function()
+            while true do
+                task.wait(1.5)
+                local human = bot.Character and bot.Character:FindFirstChildWhichIsA("Humanoid")
+                if not human or not human.SeatPart then
+                    trySeat() -- Re-seat
+                    break
+                end
+            end
+        end)
+
         return closest
     end
 end
+
 
 -- ✅ Teleport vehicle
 local function teleportVehicleTo(position)
@@ -222,8 +245,6 @@ local function teleportVehicleTo(position)
     task.wait(0.2)
     vehicle:SetPrimaryPartCFrame(CFrame.new(position))
 end
-
-
 
 -- ✅ Merchant teleport support
 local function teleportToMerchant()
@@ -254,13 +275,10 @@ local function teleportToMerchant()
     local forward = part.CFrame.LookVector
     local frontPos = part.Position + forward * 20
 
-    -- ✅ Always use merchant Y + slight lift
     local groundPos = Vector3.new(frontPos.X, part.Position.Y + 3, frontPos.Z)
-
     teleportVehicleTo(groundPos)
     reply("🧽 Teleported to Traveling Merchant")
 end
-
 
 -- ✅ Admin command handler
 local function handleAdminCommand(sender, cmd, arg)
@@ -376,7 +394,6 @@ local function handleCommand(sender, cmd, arg)
         end
     end
 end
-
 -- ✅ Chat listener
 local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
 if generalChannel then
@@ -391,7 +408,3 @@ if generalChannel then
         end
     end)
 end
-
-
-
-
