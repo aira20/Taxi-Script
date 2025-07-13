@@ -220,7 +220,14 @@ local function teleportVehicleTo(position)
 
     task.wait(0.2)
     vehicle:SetPrimaryPartCFrame(CFrame.new(position))
+    task.wait(0.3)
+
+    -- ✅ Re-seat if bot gets kicked
+    if not humanoid.SeatPart then
+        trySeat()
+    end
 end
+
 
 -- ✅ Merchant teleport support
 local function teleportToMerchant()
@@ -383,4 +390,56 @@ if generalChannel then
             handleCommand(sender, cmd:lower(), arg)
         end
     end)
+end
+
+-- ✅ Simple GUI Feedback Console (Delta-safe)
+local function createConsole()
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+    gui.Name = "TaxiFeedbackConsole"
+
+    local toggleBtn = Instance.new("TextButton", gui)
+    toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+    toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+    toggleBtn.Text = "📋 Console"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    toggleBtn.TextColor3 = Color3.new(1,1,1)
+    toggleBtn.BorderSizePixel = 0
+
+    local frame = Instance.new("ScrollingFrame", gui)
+    frame.Size = UDim2.new(0.4, 0, 0.5, 0)
+    frame.Position = UDim2.new(0, 10, 0, 60)
+    frame.Visible = false
+    frame.CanvasSize = UDim2.new(0, 0, 10, 0)
+    frame.BackgroundTransparency = 0.3
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.ScrollBarThickness = 8
+
+    local layout = Instance.new("UIListLayout", frame)
+    layout.Padding = UDim.new(0, 4)
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        frame.Visible = not frame.Visible
+    end)
+
+    local function logToGui(msg)
+        local lbl = Instance.new("TextLabel", frame)
+        lbl.Text = msg
+        lbl.Size = UDim2.new(1, -10, 0, 20)
+        lbl.TextColor3 = Color3.new(1, 1, 1)
+        lbl.BackgroundTransparency = 1
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+    end
+
+    return logToGui
+end
+
+-- ✅ Replace reply() function to use GUI
+local log = createConsole()
+local lastReplyText, lastReplyTime = "", 0
+function reply(text)
+    local now = tick()
+    if text == lastReplyText and now - lastReplyTime < 2 then return end
+    lastReplyText = text
+    lastReplyTime = now
+    log("🟦 " .. text)
 end
