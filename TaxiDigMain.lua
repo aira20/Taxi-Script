@@ -104,27 +104,20 @@ local function isOnCooldown(player)
     return false
 end
 
--- ✅ Anti-AFK setup (DELTA compatible & vehicle-safe)
+-- ✅ Anti-AFK setup (DELTA compatible)
 if antiAFKEnabled then
     task.spawn(function()
         while task.wait(30) do
             if antiAFKEnabled then
-                local char = bot.Character
-                local humanoid = char and char:FindFirstChildWhichIsA("Humanoid")
-                if humanoid and not humanoid.SeatPart then
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 0.1)
-                        print("👣 Anti-AFK triggered (not seated).")
-                    end
-                else
-                    print("💺 Seated - skipping Anti-AFK.")
+                local vchar = bot.Character
+                if vchar and vchar:FindFirstChild("HumanoidRootPart") then
+                    vchar:MoveTo(vchar.HumanoidRootPart.Position + Vector3.new(0,0,0.1))
+                    print("👣 Anti-AFK triggered (Delta-safe).")
                 end
             end
         end
     end)
 end
-
 
 -- ✅ Permission functions
 local function hasPermission(userId, cmd)
@@ -185,7 +178,6 @@ local function reply(text)
 end
 
 -- ✅ Auto sit
--- ✅ Auto sit with retry and lock
 local function trySeat()
     local root = bot.Character and bot.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
@@ -205,33 +197,10 @@ local function trySeat()
 
     if closest then
         bot.Character:PivotTo(CFrame.new(closest.Position + Vector3.new(0, 2, 0)))
-        task.wait(0.5)
-
-        -- Retry seat check
-        local humanoid = bot.Character:FindFirstChildWhichIsA("Humanoid")
-        if humanoid and not humanoid.SeatPart then
-            task.wait(0.2)
-            if closest.Occupant == nil then
-                bot.Character:PivotTo(CFrame.new(closest.Position + Vector3.new(0, 2, 0)))
-            end
-        end
-
-        -- Watch for being ejected
-        task.spawn(function()
-            while true do
-                task.wait(1.5)
-                local human = bot.Character and bot.Character:FindFirstChildWhichIsA("Humanoid")
-                if not human or not human.SeatPart then
-                    trySeat() -- Re-seat
-                    break
-                end
-            end
-        end)
-
+        task.wait(0.25)
         return closest
     end
 end
-
 
 -- ✅ Teleport vehicle
 local function teleportVehicleTo(position)
@@ -415,6 +384,3 @@ if generalChannel then
         end
     end)
 end
-
-the bot drops down after a few seconds, do you think it's because of the anti afk system that breaks it?
-
