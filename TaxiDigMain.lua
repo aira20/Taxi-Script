@@ -104,20 +104,27 @@ local function isOnCooldown(player)
     return false
 end
 
--- ✅ Anti-AFK setup (DELTA compatible)
+-- ✅ Anti-AFK setup (DELTA compatible & vehicle-safe)
 if antiAFKEnabled then
     task.spawn(function()
         while task.wait(30) do
             if antiAFKEnabled then
-                local vchar = bot.Character
-                if vchar and vchar:FindFirstChild("HumanoidRootPart") then
-                    vchar:MoveTo(vchar.HumanoidRootPart.Position + Vector3.new(0,0,0.1))
-                    print("👣 Anti-AFK triggered (Delta-safe).")
+                local char = bot.Character
+                local humanoid = char and char:FindFirstChildWhichIsA("Humanoid")
+                if humanoid and not humanoid.SeatPart then
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 0.1)
+                        print("👣 Anti-AFK triggered (not seated).")
+                    end
+                else
+                    print("💺 Seated - skipping Anti-AFK.")
                 end
             end
         end
     end)
 end
+
 
 -- ✅ Permission functions
 local function hasPermission(userId, cmd)
