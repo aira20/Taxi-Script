@@ -16,7 +16,7 @@ print("SUCCESSFULLY CONNECTED - HELLO BOSS TAXI")
 local botOwners = {
     ["srhcarolinee"] = true,
     ["Aqwstudios"] = true,
-    ["ColdFrost000"] = true,
+    --["ColdFrost000"] = true,
     ["Taxi_Dig"] = true,
     ["coldfrost000"] = true,
     ["panjisquidoo"] = true,    
