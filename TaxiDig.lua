@@ -551,7 +551,7 @@ end
 
 local GuiState = {
     currentTab = "Permissions",
-    panelVisible = false,
+    panelVisible = true,
     afkStatus = antiAFKEnabled,
 }
 
