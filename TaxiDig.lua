@@ -433,6 +433,24 @@ local function createConsole()
     return logToGui
 end
 
+-- ✅ Auto-seat monitor loop (re-seat if dropped)
+task.spawn(function()
+    while true do
+        task.wait(1)
+        local char = bot.Character
+        if not char then continue end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then continue end
+        if not humanoid.SeatPart then
+            local success = trySeat()
+            if success then
+                reply("🪑 Re-seated after drop.")
+            end
+        end
+    end
+end)
+
+
 -- ✅ Replace reply() function to use GUI
 local log = createConsole()
 local lastReplyText, lastReplyTime = "", 0
