@@ -181,7 +181,9 @@ local function reply(text)
     if guiTextRef then
         guiTextRef.Text = text
     end
+    logMessage(text) -- ✅ Add this line to log replies
 end
+
 
 -- ✅ Permission text builder
 local lastListPermTime = 0
@@ -545,3 +547,176 @@ local function createPermissionGUI()
 
     return logText
 end
+
+
+local GuiState = {
+    currentTab = "Permissions",
+    panelVisible = false,
+    afkStatus = antiAFKEnabled,
+}
+
+local logs = {}
+function logMessage(txt)
+    table.insert(logs, 1, txt)
+    if #logs > 50 then table.remove(logs) end
+end
+
+local function updateContent(contentLabel)
+    local tab = GuiState.currentTab
+    if tab == "Permissions" then
+        local text = "📜 Permissions:\n"
+        text = text .. "🌍 Global Access: " .. (Permissions.allAllowed and "✅ Enabled" or "❌ Disabled") .. "\n"
+        for cmd, userList in pairs(Permissions) do
+            if cmd ~= "allAllowed" and cmd ~= "allUsers" then
+                text = text .. "🔹 " .. cmd .. ": "
+                local names = {}
+                for user, _ in pairs(userList) do
+                    table.insert(names, user)
+                end
+                text = text .. (#names > 0 and table.concat(names, ", ") or "(none)") .. "\n"
+            end
+        end
+        contentLabel.Text = text
+
+    elseif tab == "Logs" then
+        local text = "📂 Log History:\n"
+        for _, msg in ipairs(logs) do
+            text = text .. "• " .. msg .. "\n"
+        end
+        contentLabel.Text = text
+
+    elseif tab == "AFK" then
+        contentLabel.Text = "🕒 Anti-AFK is currently: " .. (GuiState.afkStatus and "✅ ON" or "❌ OFF")
+    end
+end
+
+local function createMainGUI()
+    local existing = bot.PlayerGui:FindFirstChild("BotGUI")
+    if existing then existing:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "BotGUI"
+    gui.Parent = bot:WaitForChild("PlayerGui")
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 100, 0, 40)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -20)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+    toggleBtn.Font = Enum.Font.SourceSansSemibold
+    toggleBtn.TextSize = 18
+    toggleBtn.Text = "📋 Menu"
+    toggleBtn.Parent = gui
+
+    local panel = Instance.new("Frame")
+    panel.Size = UDim2.new(0, 520, 0, 370)
+    panel.Position = UDim2.new(0, 140, 0.5, -185)
+    panel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    panel.Visible = false
+    panel.Parent = gui
+
+    local sidebar = Instance.new("Frame")
+    sidebar.Size = UDim2.new(0, 130, 1, 0)
+    sidebar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    sidebar.Parent = panel
+
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, -130, 1, -40)
+    contentFrame.Position = UDim2.new(0, 130, 0, 0)
+    contentFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    contentFrame.Parent = panel
+
+    local contentLabel = Instance.new("TextLabel")
+    contentLabel.Size = UDim2.new(1, -20, 1, -20)
+    contentLabel.Position = UDim2.new(0, 10, 0, 10)
+    contentLabel.BackgroundTransparency = 1
+    contentLabel.TextColor3 = Color3.new(1, 1, 1)
+    contentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    contentLabel.TextYAlignment = Enum.TextYAlignment.Top
+    contentLabel.TextWrapped = true
+    contentLabel.Font = Enum.Font.Code
+    contentLabel.TextSize = 16
+    contentLabel.Text = "[Loading...]"
+    contentLabel.TextScaled = false
+    contentLabel.Parent = contentFrame
+
+    local function createSidebarButton(text, tabName, order)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 40)
+        btn.Position = UDim2.new(0, 0, 0, 40 * (order - 1))
+        btn.Text = text
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.SourceSans
+        btn.TextSize = 16
+        btn.Parent = sidebar
+
+        btn.MouseButton1Click:Connect(function()
+            GuiState.currentTab = tabName
+            updateContent(contentLabel)
+        end)
+    end
+
+    createSidebarButton("Permissions", "Permissions", 1)
+    createSidebarButton("Logs", "Logs", 2)
+    createSidebarButton("AFK Status", "AFK", 3)
+
+    local afkBtn = Instance.new("TextButton")
+    afkBtn.Size = UDim2.new(0, 130, 0, 30)
+    afkBtn.Position = UDim2.new(1, -130, 1, -30)
+    afkBtn.Text = "Toggle AFK"
+    afkBtn.Font = Enum.Font.SourceSans
+    afkBtn.TextSize = 16
+    afkBtn.BackgroundColor3 = GuiState.afkStatus and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    afkBtn.TextColor3 = Color3.new(1, 1, 1)
+    afkBtn.Parent = panel
+
+    afkBtn.MouseButton1Click:Connect(function()
+        GuiState.afkStatus = not GuiState.afkStatus
+        antiAFKEnabled = GuiState.afkStatus
+        afkBtn.BackgroundColor3 = GuiState.afkStatus and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+        updateContent(contentLabel)
+    end)
+
+    local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 40, 0, 30)
+minimizeBtn.Position = UDim2.new(1, -80, 0, 0)
+minimizeBtn.Text = "━"
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 0)
+minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+minimizeBtn.Font = Enum.Font.SourceSansBold
+minimizeBtn.TextSize = 18
+minimizeBtn.Parent = panel
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    panel.Visible = false
+end)
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 40, 0, 30)
+    closeBtn.Position = UDim2.new(1, -40, 0, 0)
+    closeBtn.Text = "✖"
+    closeBtn.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 18
+    closeBtn.Parent = panel
+
+    closeBtn.MouseButton1Click:Connect(function()
+        panel.Visible = false
+    end)
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        GuiState.panelVisible = not GuiState.panelVisible
+        panel.Visible = GuiState.panelVisible
+        updateContent(contentLabel)
+    end)
+
+    return contentLabel
+end
+
+local contentRef = createMainGUI()
+task.wait(0.5)
+updateContent(contentRef)
