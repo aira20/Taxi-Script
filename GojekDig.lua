@@ -441,7 +441,7 @@ if generalChannel then
         if not sender then return end
         local text = message.Text
 
-        local cmd, arg = text:match("^!(%w+)%s*(.*)$")
+        local cmd, arg = text:match("^@(%w+)%s*(.*)$")
         if cmd then
             handleCommand(sender, cmd:lower(), arg)
         end
