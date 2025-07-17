@@ -47,6 +47,7 @@ local aliasMap = {
     merchant = "merchant",
     beach = "beach",
     shore = "beach",
+    shores = "beach",
     pig = "verdant",
     verdant = "verdant",
     bakery = "tom",
