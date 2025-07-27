@@ -68,6 +68,9 @@ local aliasMap = {
     glacialhollow = "glacial",
     butter = "butter",
     butterfly = "butter",
+    kingmushroom = "kingmushroom",
+    kingmush = "kingmushroom",
+    
 }
 
 -- ✅ Locations
@@ -95,6 +98,7 @@ local locations = {
     polar = Vector3.new(5130, 1112, -2043),
     glacial = Vector3.new(5114, 1124, -2691),
     butter =  Vector3.new(4029, 226,-458),
+    kingmushroom = Vector3.new(9362, 524, -31920),
 }
 
 -- ✅ Cooldown handler
