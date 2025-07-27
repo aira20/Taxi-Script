@@ -471,8 +471,8 @@ local function handleCommand(sender, cmd, arg)
     elseif cmd == "tp" and allowed("tp") then
         local locationKey = aliasMap[arg] or arg
         if locations[locationKey] then
-            teleportVehicleTo(locations[locationKey])
-            reply("📦 Teleported to " .. locationKey)
+    teleportVehicleTo(locations[locationKey].pos)
+    reply("📦 Teleported to " .. locationKey)
         else
             local target = findPlayerByName(arg)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
