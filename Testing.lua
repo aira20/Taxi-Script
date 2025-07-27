@@ -470,17 +470,24 @@ local function handleCommand(sender, cmd, arg)
         teleportToMerchant()
     elseif cmd == "tp" and allowed("tp") then
         local locationKey = aliasMap[arg] or arg
-        if locations[locationKey] then
-    teleportVehicleTo(locations[locationKey].pos)
-    reply("📦 Teleported to " .. locationKey)
-        else
-            local target = findPlayerByName(arg)
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                teleportVehicleTo(target.Character.HumanoidRootPart.Position + Vector3.new(3, 0, 0))
-                reply("📍 Teleported to " .. target.Name)
+        local locData = locations[locationKey]
+        if locData then
+            if locData.type == "safe" then
+                teleportVehicleTo(locData.pos)
             else
-                reply("❌ Player/location not found.")
+                local vehicle = workspace:FindFirstChild("Active")
+                    and workspace.Active:FindFirstChild("Vehicles")
+                    and workspace.Active.Vehicles:FindFirstChild(bot.Name)
+                if vehicle then
+                    safeTeleport(vehicle, locData.pos, bot)
+                else
+                    reply("❌ Vehicle not found.")
+                    return
+                end
             end
+            reply("📦 Teleported to " .. locationKey)
+        else
+            reply("❌ Unknown location: " .. arg)
         end
 
     elseif cmd == "come" and allowed("come") then
@@ -490,6 +497,7 @@ local function handleCommand(sender, cmd, arg)
         end
     end
 end
+
 -- ✅ Chat listener
 local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
 if generalChannel then
