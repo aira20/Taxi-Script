@@ -107,7 +107,7 @@ local locations = {
     kingmushroom = Vector3.new(9362, 524, -31920),
     moon = Vector3.new(10161, 5,  -32077),
     crescentshovel = Vector3.new(9950, -136, -32983),
-    symphony = Vector.new(10936, 21, -32917),
+    symphony = Vector3.new(10936, 21, -32917),
 }
 
 -- ✅ Cooldown handler
