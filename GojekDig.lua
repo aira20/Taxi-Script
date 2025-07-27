@@ -72,6 +72,10 @@ local aliasMap = {
     kingmush = "kingmushroom",
     moon = "moon",
     bulan = "moon",
+    crescentshovel = "crescentshovel",
+    crescent = "crescentshovel",
+    symphony = "symphony",
+    symphonyshovel = "symphony",
     
 }
 
@@ -101,7 +105,9 @@ local locations = {
     glacial = Vector3.new(5114, 1124, -2691),
     butter =  Vector3.new(4029, 226,-458),
     kingmushroom = Vector3.new(9362, 524, -31920),
-    moon = Vector3.new(10161, 5,  -32077)
+    moon = Vector3.new(10161, 5,  -32077),
+    crescentshovel = Vector3.new(9950, -136, -32983),
+    symphony = Vector.new(10936, 21, -32917),
 }
 
 -- ✅ Cooldown handler
