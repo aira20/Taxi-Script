@@ -1,22 +1,22 @@
--- ⚙️ SETTINGS
+--  SETTINGS
 local TARGET_PATH = "World.Interactive.Mysterious Flower"
 local CHECK_INTERVAL = 2
 local HOP_DELAY = 2
 
--- 📦 SERVICES
+--  SERVICES
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- 🔁 TRACKING
+--  TRACKING 
 local PlaceId = game.PlaceId
 local JobId = game.JobId
 local cursor = ""
 local triedServers = {}
 local found = false
 
--- 🔍 FUNCTION: Search for Mysterious Flower
+--  JALANIN: CARI BUAT Mysterious Flower
 local function findMysteriousFlower()
 	local node = workspace
 	for segment in string.gmatch(TARGET_PATH, "[^%.]+") do
@@ -32,7 +32,7 @@ local function findMysteriousFlower()
 	return nil
 end
 
--- 🌐 FUNCTION: Get Next Public Server
+--  AUTO EXECUTE: CARI PUBLIC SERVER SECARA OTO
 local function GetNewServer()
 	local serverId = nil
 	cursor = ""
@@ -61,7 +61,7 @@ local function GetNewServer()
 			end
 			cursor = result.nextPageCursor or ""
 		else
-			warn("❌ Failed to fetch servers. Retrying...")
+			warn(" Failed to fetch servers. Retrying...")
 			task.wait(2)
 		end
 	end
@@ -69,25 +69,25 @@ local function GetNewServer()
 	return nil
 end
 
--- 🚀 MAIN LOOP
+--  LOOP GA BRENTI SAMPE DI SURUH BRENTI ATAU DI CLOSE APLIKASINYA
 task.spawn(function()
 	while not found do
-		print("🔍 Scanning for Mysterious Flower...")
+		print(" Scanning for Mysterious Flower...")
 		local flower = findMysteriousFlower()
 
 		if flower then
-			warn("🌸 MYSTERIOUS FLOWER FOUND!")
+			warn(" MYSTERIOUS FLOWER FOUND!")
 			found = true
 			break
 		else
-			print("❌ Not found. Hopping to next server...")
+			print(" Not found. Hopping to next server...")
 			task.wait(HOP_DELAY)
 
 			local newServer = GetNewServer()
 			if newServer then
-				print("🔄 Teleporting to:", newServer)
+				print(" Teleporting to:", newServer)
 
-				-- Optional: Requeue this script after teleport
+				-- GA WAJIB: Requeue this script after teleport
 				pcall(function()
 					queueonteleport([[
 						loadstring(game:HttpGet("https://pastebin.com/raw/YOUR_RAW_SCRIPT_LINK"))()
@@ -95,9 +95,9 @@ task.spawn(function()
 				end)
 
 				TeleportService:TeleportToPlaceInstance(PlaceId, newServer, LocalPlayer)
-				break -- Exit after teleport
+				break -- KELAR TELEPORT langsung kelar
 			else
-				warn("⚠️ No servers found. Retrying in 60 seconds...")
+				warn(" No servers found. Retrying in 60 seconds...")
 				task.wait(60)
 			end
 		end
